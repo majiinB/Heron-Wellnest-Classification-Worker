@@ -1,7 +1,6 @@
-from datetime import datetime, timezone, timedelta, date
+from datetime import datetime, timezone, timedelta
 import asyncio
 import numpy as np
-import re
 from typing import Dict, Any, List, Optional
 from uuid import UUID as UUIDType
 
@@ -34,6 +33,7 @@ EMOTIONS = [
     "Happy", "Energized", "Excited", "Motivated",
 ]
 
+# assist function to normalize mood strings
 def _normalize_mood(val: Any) -> Optional[str]:
     if val is None:
         return None
@@ -46,6 +46,7 @@ def _normalize_mood(val: Any) -> Optional[str]:
         return name[0].upper() + name[1:].lower()
     return None
 
+# assist function to one-hot encode moods
 def _one_hot_moods(selected: List[Any]) -> Dict[str, int]:
     hot = {e: 0 for e in EMOTIONS}
     for raw in selected:
@@ -56,6 +57,7 @@ def _one_hot_moods(selected: List[Any]) -> Dict[str, int]:
 
 import json
 
+# assist function to aggregate wellness_state probabilities
 def _aggregate_wellness_probs(journals: List[Dict[str, Any]]) -> Dict[str, float]:
     totals = {k: 0.0 for k in ALL_LABELS}
     counted = 0
@@ -85,7 +87,7 @@ def _aggregate_wellness_probs(journals: List[Dict[str, Any]]) -> Dict[str, float
     avgs = {k: (totals[k] / counted if counted else 0.0) for k in ALL_LABELS}
     return {LABEL_TO_PKEY[k]: avgs[k] for k in ALL_LABELS}
 
-
+# assist function to provide default flipfeel percentages
 def _default_flipfeel_pct() -> Dict[str, float]:
     return {
         "flipfeel_incrisis_pct": 0.0,
@@ -94,6 +96,7 @@ def _default_flipfeel_pct() -> Dict[str, float]:
         "flipfeel_excelling_pct": 0.0,
     }
 
+# assist function to convert numpy types to native Python types
 def _to_native(obj):
     if obj is None:
         return None
@@ -111,6 +114,7 @@ def _to_native(obj):
         return [_to_native(v) for v in obj]
     return obj
 
+# assist function to normalize Flip & Feel labels
 def _normalize_flipfeel_label(label: Optional[str]) -> Optional[str]:
     if not label:
         return None
@@ -126,6 +130,7 @@ def _normalize_flipfeel_label(label: Optional[str]) -> Optional[str]:
         return "Struggling"
     return None
 
+# assist function to compute Flip & Feel percentages from sessions
 def _compute_flipfeel_pct_from_sessions(sessions: List[Dict[str, Any]]) -> Dict[str, float]:
     if not sessions:
         return _default_flipfeel_pct()
@@ -147,6 +152,7 @@ def _compute_flipfeel_pct_from_sessions(sessions: List[Dict[str, Any]]) -> Dict[
         "flipfeel_excelling_pct": counts["Excelling"] / total,
     }
 
+
 class ClassificationController:
     def __init__(
             self,
@@ -160,35 +166,50 @@ class ClassificationController:
         self.classification_repo = classification_repo
 
     async def classify_today_entries(self, top_k: int = 1):
+        # Set date to today (UTC)
         for_date = datetime.now(timezone.utc).date()
 
+        # Fetch mood check-ins for the date
         mood_rows = await get_users_mood_check_ins_for_date(for_date)
+        # If no mood check-ins, return empty list
         if not mood_rows:
             logger.info("No mood check-ins found for date=%s", for_date)
             return []
 
+        # structure mood data by user_id for quick access
         mood_by_user = {row["user_id"]: row for row in mood_rows}
+        # put user IDs in a list to iterate over
         user_ids = list(mood_by_user.keys())
 
+        # method to build model input for a single user
         async def build_model_input(uid: str):
+            # Fetch journal entries for the user on the date
             journals = await get_journal_by_id(uid, for_date, default_wellness={})
+            # Fetch gratitude entry
             has_grat = await has_gratitude_entry_for_date(uid, for_date)
+            # retrieve mood data for the user
             moods = mood_by_user[uid]
 
+            # Aggregate and average wellness probabilities from journal entries
             probs = _aggregate_wellness_probs(journals)
 
+            # One-hot encode mood check-in emotions
             one_hot = _one_hot_moods([
                 moods.get("mood_1"),
                 moods.get("mood_2"),
                 moods.get("mood_3"),
             ])
 
+            # Fetch Flip & Feel sessions and compute percentages
             try:
                 sessions = await get_flipfeel_by_user_id(uid, for_date)
             except Exception:
                 sessions = []
+
+            # aggregate Flip & Feel session data into percentage features
             flipfeel = _compute_flipfeel_pct_from_sessions(sessions)
 
+            # Structure model input dictionary
             model_input = {
                 **probs,
                 "gratitude_flag": 1 if has_grat else 0,
@@ -202,9 +223,11 @@ class ClassificationController:
                 "model_input": model_input,
             }
 
+        # Build model inputs for all users concurrently
         per_user_inputs = await asyncio.gather(*(build_model_input(uid) for uid in user_ids))
         logger.info(f"Built {len(per_user_inputs)} model inputs for date={for_date} (top_k={top_k})")
 
+        # Run classification in executor to avoid blocking event loop
         input_batch = [item["model_input"] for item in per_user_inputs]
         loop = asyncio.get_running_loop()
         async with self.model_lock:
@@ -212,10 +235,12 @@ class ClassificationController:
                 None, lambda: self.classifcation_service.classify_user(input_batch, top_k=top_k)
             )
 
+        # Process classification results and persist analytics/classifications
         final = []
+        # for each user input and corresponding classification result
         for item, clf in zip(per_user_inputs, clf_results):
-            prediction = _to_native(clf.get("prediction"))
-            probabilities = _to_native(clf.get("probabilities"))
+            prediction = _to_native(clf.get("prediction")) # get predicted label
+            probabilities = _to_native(clf.get("probabilities")) # get probabilities
             final_item = {
                 **item,
                 "prediction": prediction,
@@ -261,7 +286,11 @@ class ClassificationController:
                     student_uuid = UUIDType(uid)
                 except Exception:
                     student_uuid = uid
-                await self.classification_repo.create(student_uuid, prediction)
+                await self.classification_repo.create(
+                    student_id=student_uuid,
+                    classification=prediction,
+                    classification_probabilities=probabilities
+                )
             except Exception as exc:
                 logger.exception("Failed to persist analytics/classification for user=%s: %s", uid, exc)
 

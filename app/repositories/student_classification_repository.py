@@ -14,6 +14,7 @@ class CreateStudentClassification:
     classification: Optional[str]
     classified_at: Optional[datetime] = None
     classification_id: Optional[UUID] = None
+    classification_probabilities: Optional[dict] = None
 
 class StudentClassificationRepository:
     def __init__(self, session_factory: sessionmaker):
@@ -36,6 +37,7 @@ class StudentClassificationRepository:
         classification: Any,
         classified_at: Optional[datetime] = None,
         classification_id: Optional[UUID] = None,
+        classification_probabilities: Optional[dict] = None,
     ) -> StudentClassification:
         async with self.session_factory() as session:  # type: AsyncSession
             inst = StudentClassification(
@@ -43,6 +45,7 @@ class StudentClassificationRepository:
                 student_id=student_id,
                 classification=self._to_enum(classification),
                 classified_at=classified_at,
+                classification_probabilities=classification_probabilities,
             )
             session.add(inst)
             await session.commit()
@@ -58,6 +61,7 @@ class StudentClassificationRepository:
                     student_id=item.student_id,
                     classification=self._to_enum(item.classification),
                     classified_at=item.classified_at,
+                    classification_probabilities=item.classification_probabilities,
                 )
                 created.append(inst)
             session.add_all(created)
