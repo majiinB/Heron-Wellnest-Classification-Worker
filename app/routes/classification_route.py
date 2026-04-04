@@ -46,7 +46,7 @@ async def run_daily_classification():
         return {"status": "ok"}, 200
     except Exception as e:
         logger.error(f"Error running daily classification: {e}")
-        return {"error": str(e)}, 500
+        return {"error": str(e)}, 200
 
 @router.post("/weekly-scheduler")
 async def run_weekly_classification():
@@ -59,4 +59,4 @@ async def run_weekly_classification():
         return {"status": "ok"}, 200
     except Exception as e:
         logger.error(f"Error running daily classification: {e}")
-        return {"error": str(e)}, 500
+        return {"error": str(e)}, 200

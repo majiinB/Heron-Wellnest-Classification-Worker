@@ -147,7 +147,7 @@ class WeeklyClassificationService:
         if len(last3) == 3 and all((l and l.lower() in ("thriving", "excelling")) for l in last3):
             # override any flag
             flag = False
-            reasons = [r for r in reasons if not r.startswith("R")]  # remove rule explanations if desired
+            # reasons = [r for r in reasons if not r.startswith("R")]  # remove rule explanations if desired
             reasons.append("R5: stable improvement (do not flag)")
 
         # Persist weekly classification (dominant may be None)
