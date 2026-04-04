@@ -273,7 +273,6 @@ class ClassificationController:
             analytics_kwargs["f_and_f_struggling"] = float(model_input.get("flipfeel_struggling_pct", 0.0))
             analytics_kwargs["f_and_f_thriving"] = float(model_input.get("flipfeel_thriving_pct", 0.0))
             analytics_kwargs["f_and_f_excelling"] = float(model_input.get("flipfeel_excelling_pct", 0.0))
-            analytics_kwargs["f_and_f_final_category"] = float(model_input.get("f_and_f_final_category", 0.0))
 
             analytics_kwargs["classification"] = prediction
 
