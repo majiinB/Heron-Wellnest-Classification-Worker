@@ -11,7 +11,8 @@ from dataclasses import asdict
 class CreateStudentAnalytics:
     analytics_id: Optional[UUID] = None
     date_recorded: Optional[datetime] = None
-    gratitude_flag: Optional[bool] = False
+    # store gratitude_flag as integer (0 or 1) for DB compatibility
+    gratitude_flag: Optional[int] = 0
     p_anxiety: Optional[float] = None
     p_normal: Optional[float] = None
     p_stressed: Optional[float] = None

@@ -253,7 +253,8 @@ class ClassificationController:
 
             analytics_kwargs = {
                 "date_recorded": datetime.now(timezone.utc),
-                "gratitude_flag": bool(model_input.get("gratitude_flag", 0)),
+                # store gratitude_flag as integer 0/1 (keep numeric form instead of converting to bool)
+                "gratitude_flag": int(model_input.get("gratitude_flag", 0)),
                 "p_anxiety": float(model_input.get("p_anxiety")) if model_input.get("p_anxiety") is not None else None,
                 "p_normal": float(model_input.get("p_normal")) if model_input.get("p_normal") is not None else None,
                 "p_stressed": float(model_input.get("p_stressed")) if model_input.get(
@@ -357,3 +358,4 @@ class ClassificationController:
 
         logger.info("Completed weekly classification for %d users range=%s..%s", len(user_ids), start_date, end_date)
         return results
+

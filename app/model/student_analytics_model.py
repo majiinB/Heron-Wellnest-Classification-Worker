@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Boolean, DateTime, Float, Integer, func
+from sqlalchemy import Column, DateTime, Float, Integer, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ENUM as PG_ENUM
 from typing import Dict, Any
 from datetime import datetime
@@ -22,7 +22,8 @@ class StudentAnalytics(Base):
         nullable=False,
     )
 
-    gratitude_flag = Column(Boolean, nullable=False, default=False)
+    # store gratitude_flag as integer 0/1 in DB
+    gratitude_flag = Column(Integer, nullable=False, default=0)
 
     p_anxiety = Column(Float, nullable=True)
     p_normal = Column(Float, nullable=True)
@@ -51,7 +52,6 @@ class StudentAnalytics(Base):
     f_and_f_struggling = Column(Float, nullable=True)
     f_and_f_thriving = Column(Float, nullable=True)
     f_and_f_excelling = Column(Float, nullable=True)
-    f_and_f_final_category = Column(Float, nullable=True)
 
     classification = Column(
         PG_ENUM(
@@ -66,7 +66,8 @@ class StudentAnalytics(Base):
         return {
             "analytics_id": str(self.analytics_id) if self.analytics_id else None,
             "date_recorded": self.date_recorded.isoformat() if isinstance(self.date_recorded, datetime) else None,
-            "gratitude_flag": bool(self.gratitude_flag),
+            # return gratitude_flag as integer 0/1 to match expected API/consumers
+            "gratitude_flag": 1 if self.gratitude_flag else 0,
             "p_anxiety": float(self.p_anxiety) if self.p_anxiety is not None else None,
             "p_normal": float(self.p_normal) if self.p_normal is not None else None,
             "p_stressed": float(self.p_stressed) if self.p_stressed is not None else None,
@@ -92,6 +93,5 @@ class StudentAnalytics(Base):
             "f_and_f_struggling": float(self.f_and_f_struggling) if self.f_and_f_struggling is not None else None,
             "f_and_f_thriving": float(self.f_and_f_thriving) if self.f_and_f_thriving is not None else None,
             "f_and_f_excelling": float(self.f_and_f_excelling) if self.f_and_f_excelling is not None else None,
-            "f_and_f_final_category": float(self.f_and_f_final_category) if self.f_and_f_final_category is not None else None,
             "classification": (self.classification.value if isinstance(self.classification, ClassificationLabel) else (str(self.classification) if self.classification is not None else None)),
         }
