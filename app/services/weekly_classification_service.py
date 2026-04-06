@@ -151,18 +151,20 @@ class WeeklyClassificationService:
             reasons.append("R5: stable improvement (do not flag)")
 
         # Persist weekly classification (dominant may be None)
+        reason_text = " | ".join(reasons)
         try:
             created = await self.weekly_repo.create(
                 student_id=str(student_id),
                 week_start=week_start,
                 week_end=week_end,
                 is_flagged=flag,
-                reason=reasons,
+                reason=reason_text,
                 dominant_classification=dominant,
             )
         except Exception as exc:
             created = None
             reasons.append(f"persist_error: {exc}")
+            reason_text = " | ".join(reasons)
 
         result = {
             "student_id": str(student_id),
@@ -175,7 +177,8 @@ class WeeklyClassificationService:
             "last_3_labels": last3,
             "flagged": bool(flag),
             "review_for_missing": bool(review_for_missing),
-            "reasons": reasons,
+            "reasons": reason_text,
             "persisted_row": created,
         }
         return result
+
