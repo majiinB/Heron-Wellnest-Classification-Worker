@@ -38,7 +38,6 @@ class CreateStudentAnalytics:
     f_and_f_struggling: Optional[float] = None
     f_and_f_thriving: Optional[float] = None
     f_and_f_excelling: Optional[float] = None
-    f_and_f_final_category: Optional[float] = None
     classification: Optional[str] = None
 
 class StudentAnalyticsRepository:
