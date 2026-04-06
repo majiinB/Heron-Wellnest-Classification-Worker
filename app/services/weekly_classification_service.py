@@ -156,6 +156,8 @@ class WeeklyClassificationService:
                 student_id=str(student_id),
                 week_start=week_start,
                 week_end=week_end,
+                is_flagged=flag,
+                reason=reasons,
                 dominant_classification=dominant,
             )
         except Exception as exc:

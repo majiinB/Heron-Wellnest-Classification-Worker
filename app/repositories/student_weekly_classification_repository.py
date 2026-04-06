@@ -31,6 +31,8 @@ class StudentWeeklyClassificationRepository:
         student_id: str,
         week_start: datetime,
         week_end: datetime,
+        is_flagged: bool,
+        reason: Optional[str] = None,
         dominant_classification: Optional[str] = None,
         classified_at: Optional[datetime] = None,
         weekly_classification_id: Optional[uuid.UUID] = None,
@@ -49,9 +51,9 @@ class StudentWeeklyClassificationRepository:
 
         query = """
         INSERT INTO student_weekly_classification
-            (weekly_classification_id, student_id, week_start, week_end, dominant_classification, classified_at)
+            (weekly_classification_id, student_id, week_start, week_end, dominant_classification, classified_at, is_flagged, reason)
         VALUES
-            (:weekly_classification_id, :student_id, :week_start, :week_end, :dominant_classification, COALESCE(:classified_at, now()))
+            (:weekly_classification_id, :student_id, :week_start, :week_end, :dominant_classification, COALESCE(:classified_at, now()), :is_flagged, :reason) )
         RETURNING *;
         """
         params = {
@@ -59,6 +61,8 @@ class StudentWeeklyClassificationRepository:
             "student_id": student_id,
             "week_start": week_start,
             "week_end": week_end,
+            "is_flagged": is_flagged,
+            "reason": reason,
             "dominant_classification": dc,
             "classified_at": classified_at,
         }

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Boolean, func
+from sqlalchemy import Column, DateTime, Boolean, func, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ENUM as PG_ENUM
 from typing import Dict, Any
 from datetime import datetime
@@ -57,6 +57,11 @@ class StudentWeeklyClassification(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
+    )
+
+    reason = Column(
+        Text,
+        nullable=True,
     )
 
     def to_dict(self) -> Dict[str, Any]:
